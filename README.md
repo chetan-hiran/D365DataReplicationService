@@ -1,2 +1,2 @@
 # D365DataReplicationService
-ADF pipeline to replicate D365 data to Azure SQL database
+ADF Based D365 Data Export Services, which can be the replacement for the retired D365 DES Service.
