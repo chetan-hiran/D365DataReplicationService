@@ -3,22 +3,19 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "factoryName": {
-            "value": "ods-dev"
-        },
-        "Azure_Sql_ODS_connectionString": {
             "value": ""
         },
-        "D365_Rest_Service_servicePrincipalKey": {
+        "Azure_Sql_ODS_connectionString": {
             "value": ""
         },
         "Blob_connectionString": {
             "value": ""
         },
-        "kv_linkedservice_properties_typeProperties_baseUrl": {
-            "value": "https://<Key Vault>.vault.azure.net/"
+        "D365_Rest_Service_servicePrincipalKey": {
+            "value": ""
         },
         "D365_Rest_Service_properties_typeProperties_url": {
-            "value": "https://<CRM Org>.crm.dynamics.com"
+            "value": "https://<CRM Org>.api.crm.dynamics.com/"
         },
         "D365_Rest_Service_properties_typeProperties_servicePrincipalId": {
             "value": ""
@@ -27,7 +24,10 @@
             "value": ""
         },
         "D365_Rest_Service_properties_typeProperties_aadResourceId": {
-            "value": "https://<CRM Org>.crm.dynamics.com"
+            "value": "https://<CRM Org>.api.crm.dynamics.com/"
+        },
+        "kv_linkedservice_properties_typeProperties_baseUrl": {
+            "value": "https://<KeyVault>.vault.azure.net"
         }
     }
 }

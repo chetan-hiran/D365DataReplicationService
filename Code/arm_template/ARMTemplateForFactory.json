@@ -5,27 +5,23 @@
         "factoryName": {
             "type": "string",
             "metadata": "Data Factory name",
-            "defaultValue": "ods-dev"
+            "defaultValue": ""
         },
         "Azure_Sql_ODS_connectionString": {
             "type": "secureString",
             "metadata": "Secure string for 'connectionString' of 'Azure_Sql_ODS'"
         },
-        "D365_Rest_Service_servicePrincipalKey": {
-            "type": "secureString",
-            "metadata": "Secure string for 'servicePrincipalKey' of 'D365_Rest_Service'"
-        },
         "Blob_connectionString": {
             "type": "secureString",
             "metadata": "Secure string for 'connectionString' of 'Blob'"
         },
-        "kv_linkedservice_properties_typeProperties_baseUrl": {
-            "type": "string",
-            "defaultValue": "https://<<Keyvault>>.vault.azure.net/"
+        "D365_Rest_Service_servicePrincipalKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'servicePrincipalKey' of 'D365_Rest_Service'"
         },
         "D365_Rest_Service_properties_typeProperties_url": {
             "type": "string",
-            "defaultValue": "https://<<CRM Org>>.crm.dynamics.com"
+            "defaultValue": "https://<CRM Org>.api.crm.dynamics.com/"
         },
         "D365_Rest_Service_properties_typeProperties_servicePrincipalId": {
             "type": "string",
@@ -37,7 +33,11 @@
         },
         "D365_Rest_Service_properties_typeProperties_aadResourceId": {
             "type": "string",
-            "defaultValue": "https://<<CRM Org>>.crm.dynamics.com"
+            "defaultValue": "https://<CRM Org>.api.crm.dynamics.com/"
+        },
+        "kv_linkedservice_properties_typeProperties_baseUrl": {
+            "type": "string",
+            "defaultValue": "https://<KeyVault>.vault.azure.net"
         }
     },
     "variables": {
@@ -107,69 +107,6 @@
             "dependsOn": [
                 "[concat(variables('factoryId'), '/linkedServices/Azure_Sql_ODS')]"
             ]
-        },
-        {
-            "name": "[concat(parameters('factoryName'), '/kv_linkedservice')]",
-            "type": "Microsoft.DataFactory/factories/linkedServices",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "annotations": [],
-                "type": "AzureKeyVault",
-                "typeProperties": {
-                    "baseUrl": "[parameters('kv_linkedservice_properties_typeProperties_baseUrl')]"
-                }
-            },
-            "dependsOn": []
-        },
-        {
-            "name": "[concat(parameters('factoryName'), '/Azure_Sql_ODS')]",
-            "type": "Microsoft.DataFactory/factories/linkedServices",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "annotations": [],
-                "type": "AzureSqlDatabase",
-                "typeProperties": {
-                    "connectionString": "[parameters('Azure_Sql_ODS_connectionString')]"
-                }
-            },
-            "dependsOn": []
-        },
-        {
-            "name": "[concat(parameters('factoryName'), '/D365_Rest_Service')]",
-            "type": "Microsoft.DataFactory/factories/linkedServices",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "annotations": [],
-                "type": "RestService",
-                "typeProperties": {
-                    "url": "[parameters('D365_Rest_Service_properties_typeProperties_url')]",
-                    "enableServerCertificateValidation": true,
-                    "authenticationType": "AadServicePrincipal",
-                    "servicePrincipalId": "[parameters('D365_Rest_Service_properties_typeProperties_servicePrincipalId')]",
-                    "servicePrincipalKey": {
-                        "type": "SecureString",
-                        "value": "[parameters('D365_Rest_Service_servicePrincipalKey')]"
-                    },
-                    "tenant": "[parameters('D365_Rest_Service_properties_typeProperties_tenant')]",
-                    "aadResourceId": "[parameters('D365_Rest_Service_properties_typeProperties_aadResourceId')]",
-                    "azureCloudType": "AzurePublic"
-                }
-            },
-            "dependsOn": []
-        },
-        {
-            "name": "[concat(parameters('factoryName'), '/Blob')]",
-            "type": "Microsoft.DataFactory/factories/linkedServices",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "description": "Blob storage to track failed records during sync",
-                "annotations": [],
-                "type": "AzureBlobStorage",
-                "typeProperties": {
-                    "connectionString": "[parameters('Blob_connectionString')]"
-                }
-            },
-            "dependsOn": []
         },
         {
             "name": "[concat(parameters('factoryName'), '/01 - Master Data Load')]",
@@ -311,7 +248,7 @@
                     "cancelAfter": {}
                 },
                 "annotations": [],
-                "lastPublishTime": "2022-11-10T04:37:04Z"
+                "lastPublishTime": "2023-04-27T21:21:40Z"
             },
             "dependsOn": [
                 "[concat(variables('factoryId'), '/datasets/ds_d365dataset')]",
@@ -684,214 +621,11 @@
                     "name": "Helpers"
                 },
                 "annotations": [],
-                "lastPublishTime": "2022-11-15T04:00:40Z"
+                "lastPublishTime": "2023-04-27T21:21:40Z"
             },
             "dependsOn": [
                 "[concat(variables('factoryId'), '/datasets/ds_d365dataset')]",
                 "[concat(variables('factoryId'), '/datasets/ds_odssqltable')]",
-                "[concat(variables('factoryId'), '/linkedServices/Azure_Sql_ODS')]"
-            ]
-        },
-        {
-            "name": "[concat(parameters('factoryName'), '/02 - Entity Schema Sync Master')]",
-            "type": "Microsoft.DataFactory/factories/pipelines",
-            "apiVersion": "2018-06-01",
-            "properties": {
-                "activities": [
-                    {
-                        "name": "Get All Entitites to Sync",
-                        "type": "Lookup",
-                        "dependsOn": [
-                            {
-                                "activity": "Get Entity Name",
-                                "dependencyConditions": [
-                                    "Succeeded"
-                                ]
-                            }
-                        ],
-                        "policy": {
-                            "timeout": "7.00:00:00",
-                            "retry": 0,
-                            "retryIntervalInSeconds": 30,
-                            "secureOutput": false,
-                            "secureInput": false
-                        },
-                        "userProperties": [],
-                        "typeProperties": {
-                            "source": {
-                                "type": "AzureSqlSource",
-                                "sqlReaderQuery": {
-                                    "value": "@concat('select EntityName,AttributeSchemaURL,PrimaryIdAttribute,IsActivity from ODS.EntitySync where SyncReady = 1 \nand (lower(''',variables('entity'),''')=''all'' or lower(''',variables('entity'),''') like ''%''+lower(EntityName)+''%'')')\n",
-                                    "type": "Expression"
-                                },
-                                "queryTimeout": "02:00:00",
-                                "partitionOption": "None"
-                            },
-                            "dataset": {
-                                "referenceName": "ds_odssqltable",
-                                "type": "DatasetReference",
-                                "parameters": {
-                                    "databaseSchema": "dbo",
-                                    "tableName": "EntitySync"
-                                }
-                            },
-                            "firstRowOnly": false
-                        }
-                    },
-                    {
-                        "name": "ForEach Entity",
-                        "type": "ForEach",
-                        "dependsOn": [
-                            {
-                                "activity": "Get All Entitites to Sync",
-                                "dependencyConditions": [
-                                    "Succeeded"
-                                ]
-                            }
-                        ],
-                        "userProperties": [],
-                        "typeProperties": {
-                            "items": {
-                                "value": "@activity('Get All Entitites to Sync').output.value",
-                                "type": "Expression"
-                            },
-                            "isSequential": false,
-                            "batchCount": 25,
-                            "activities": [
-                                {
-                                    "name": "Schema Sync Helper",
-                                    "type": "ExecutePipeline",
-                                    "dependsOn": [],
-                                    "userProperties": [],
-                                    "typeProperties": {
-                                        "pipeline": {
-                                            "referenceName": "Schema Sync",
-                                            "type": "PipelineReference"
-                                        },
-                                        "waitOnCompletion": true,
-                                        "parameters": {
-                                            "EntityName": {
-                                                "value": "@item().EntityName",
-                                                "type": "Expression"
-                                            },
-                                            "AttributeURL": {
-                                                "value": "@item().AttributeSchemaURL",
-                                                "type": "Expression"
-                                            },
-                                            "Mapping": {
-                                                "value": "@variables('FieldMapping')",
-                                                "type": "Expression"
-                                            },
-                                            "ExecutionId": {
-                                                "value": "@pipeline().RunId",
-                                                "type": "Expression"
-                                            },
-                                            "PrimaryIdAttribute": {
-                                                "value": "@item().PrimaryIdAttribute",
-                                                "type": "Expression"
-                                            },
-                                            "IsActivity": {
-                                                "value": "@item().IsActivity",
-                                                "type": "Expression"
-                                            }
-                                        }
-                                    }
-                                },
-                                {
-                                    "name": "Log Error Schema Sync",
-                                    "type": "SqlServerStoredProcedure",
-                                    "dependsOn": [
-                                        {
-                                            "activity": "Schema Sync Helper",
-                                            "dependencyConditions": [
-                                                "Failed"
-                                            ]
-                                        }
-                                    ],
-                                    "policy": {
-                                        "timeout": "7.00:00:00",
-                                        "retry": 0,
-                                        "retryIntervalInSeconds": 30,
-                                        "secureOutput": false,
-                                        "secureInput": false
-                                    },
-                                    "userProperties": [],
-                                    "typeProperties": {
-                                        "storedProcedureName": "[[ODS].[usp_LogEndExecution]",
-                                        "storedProcedureParameters": {
-                                            "ExecutionId": {
-                                                "value": {
-                                                    "value": "@pipeline().RunId",
-                                                    "type": "Expression"
-                                                },
-                                                "type": "Guid"
-                                            },
-                                            "Message": {
-                                                "value": {
-                                                    "value": "@activity('Schema Sync Helper').Error.message",
-                                                    "type": "Expression"
-                                                },
-                                                "type": "String"
-                                            },
-                                            "RunStatus": {
-                                                "value": "Error",
-                                                "type": "String"
-                                            }
-                                        }
-                                    },
-                                    "linkedServiceName": {
-                                        "referenceName": "Azure_Sql_ODS",
-                                        "type": "LinkedServiceReference"
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "name": "Get Entity Name",
-                        "type": "SetVariable",
-                        "dependsOn": [],
-                        "userProperties": [],
-                        "typeProperties": {
-                            "variableName": "entity",
-                            "value": {
-                                "value": "@json(string(pipeline().parameters.EntityName)).key",
-                                "type": "Expression"
-                            }
-                        }
-                    }
-                ],
-                "concurrency": 1,
-                "policy": {
-                    "elapsedTimeMetric": {},
-                    "cancelAfter": {}
-                },
-                "parameters": {
-                    "EntityName": {
-                        "type": "string",
-                        "defaultValue": {
-                            "key": "account"
-                        }
-                    }
-                },
-                "variables": {
-                    "FieldMapping": {
-                        "type": "String",
-                        "defaultValue": "{   \"type\": \"TabularTranslator\",   \"mappings\": [     {       \"source\": { \"path\": \"['AttributeOf']\" },       \"sink\": {         \"name\": \"AttributeOf\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['AttributeType']\" },       \"sink\": {         \"name\": \"AttributeType\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['EntityLogicalName']\" },       \"sink\": {         \"name\": \"EntityLogicalName\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['IsPrimaryId']\" },       \"sink\": {         \"name\": \"IsPrimaryId\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['IsValidODataAttribute']\" },       \"sink\": {         \"name\": \"IsValidODataAttribute\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['IsPrimaryName']\" },       \"sink\": {         \"name\": \"IsPrimaryName\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['LogicalName']\" },       \"sink\": {         \"name\": \"AttributeLogicalName\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['SchemaName']\" },       \"sink\": {         \"name\": \"AttributeSchemaName\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['MaxLength']\" },       \"sink\": {         \"name\": \"MaxLength\",         \"type\": \"Int32\"       }     },     {       \"source\": { \"path\": \"['DatabaseLength']\" },       \"sink\": {         \"name\": \"DatabaseLength\",         \"type\": \"Int32\"       }     },     {       \"source\": { \"path\": \"['Precision']\" },       \"sink\": {         \"name\": \"Precision\",         \"type\": \"Int32\"       }     },     {       \"source\": { \"path\": \"['IsRetrievable']\" },       \"sink\": {         \"name\": \"IsRetrievable\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['AttributeTypeName']['Value']\" },       \"sink\": {         \"name\": \"AttributeTypeName\",         \"type\": \"String\"       }     }   ],   \"collectionReference\": \"$['Attributes']\",   \"mapComplexValuesToString\": false }"
-                    },
-                    "ErrorMessage": {
-                        "type": "String"
-                    },
-                    "entity": {
-                        "type": "String"
-                    }
-                },
-                "annotations": [],
-                "lastPublishTime": "2022-11-10T04:35:18Z"
-            },
-            "dependsOn": [
-                "[concat(variables('factoryId'), '/datasets/ds_odssqltable')]",
-                "[concat(variables('factoryId'), '/pipelines/Schema Sync')]",
                 "[concat(variables('factoryId'), '/linkedServices/Azure_Sql_ODS')]"
             ]
         },
@@ -904,14 +638,7 @@
                     {
                         "name": "Get Entities to Sync",
                         "type": "Lookup",
-                        "dependsOn": [
-                            {
-                                "activity": "Log Start",
-                                "dependencyConditions": [
-                                    "Succeeded"
-                                ]
-                            }
-                        ],
+                        "dependsOn": [],
                         "policy": {
                             "timeout": "7.00:00:00",
                             "retry": 0,
@@ -1409,90 +1136,6 @@
                                 }
                             ]
                         }
-                    },
-                    {
-                        "name": "Log Start",
-                        "type": "SqlServerStoredProcedure",
-                        "dependsOn": [],
-                        "policy": {
-                            "timeout": "0.12:00:00",
-                            "retry": 0,
-                            "retryIntervalInSeconds": 30,
-                            "secureOutput": false,
-                            "secureInput": false
-                        },
-                        "userProperties": [],
-                        "typeProperties": {
-                            "storedProcedureName": "[[ODS].[usp_LogStartExecution]",
-                            "storedProcedureParameters": {
-                                "ExecutionId": {
-                                    "value": {
-                                        "value": "@pipeline().RunId",
-                                        "type": "Expression"
-                                    },
-                                    "type": "Guid"
-                                },
-                                "PackageName": {
-                                    "value": {
-                                        "value": "@pipeline().Pipeline",
-                                        "type": "Expression"
-                                    },
-                                    "type": "String"
-                                },
-                                "RunStatus": {
-                                    "value": "Pipeline Execution Start",
-                                    "type": "String"
-                                }
-                            }
-                        },
-                        "linkedServiceName": {
-                            "referenceName": "Azure_Sql_ODS",
-                            "type": "LinkedServiceReference"
-                        }
-                    },
-                    {
-                        "name": "Log End Success",
-                        "type": "SqlServerStoredProcedure",
-                        "dependsOn": [
-                            {
-                                "activity": "ForEach Entities Get Data",
-                                "dependencyConditions": [
-                                    "Completed"
-                                ]
-                            }
-                        ],
-                        "policy": {
-                            "timeout": "0.12:00:00",
-                            "retry": 0,
-                            "retryIntervalInSeconds": 30,
-                            "secureOutput": false,
-                            "secureInput": false
-                        },
-                        "userProperties": [],
-                        "typeProperties": {
-                            "storedProcedureName": "[[ODS].[usp_LogEndExecution]",
-                            "storedProcedureParameters": {
-                                "ExecutionId": {
-                                    "value": {
-                                        "value": "@pipeline().RunId",
-                                        "type": "Expression"
-                                    },
-                                    "type": "Guid"
-                                },
-                                "Message": {
-                                    "value": "Pipeline Execution Completed",
-                                    "type": "String"
-                                },
-                                "RunStatus": {
-                                    "value": "Completed",
-                                    "type": "String"
-                                }
-                            }
-                        },
-                        "linkedServiceName": {
-                            "referenceName": "Azure_Sql_ODS",
-                            "type": "LinkedServiceReference"
-                        }
                     }
                 ],
                 "concurrency": 1,
@@ -1522,7 +1165,7 @@
                     }
                 },
                 "annotations": [],
-                "lastPublishTime": "2023-01-29T05:26:55Z"
+                "lastPublishTime": "2023-04-27T21:21:40Z"
             },
             "dependsOn": [
                 "[concat(variables('factoryId'), '/datasets/ds_odssqltable')]",
@@ -1532,7 +1175,210 @@
             ]
         },
         {
-            "name": "[concat(parameters('factoryName'), '/05 - Data Sync - OptionSets')]",
+            "name": "[concat(parameters('factoryName'), '/02 - Entity Schema Sync Master')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "Get All Entitites to Sync",
+                        "type": "Lookup",
+                        "dependsOn": [
+                            {
+                                "activity": "Get Entity Name",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "7.00:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "AzureSqlSource",
+                                "sqlReaderQuery": {
+                                    "value": "@concat('select EntityName,AttributeSchemaURL,PrimaryIdAttribute,IsActivity from ODS.EntitySync where SyncReady = 1 \nand (lower(''',variables('entity'),''')=''all'' or lower(''',variables('entity'),''') like ''%''+lower(EntityName)+''%'')')\n",
+                                    "type": "Expression"
+                                },
+                                "queryTimeout": "02:00:00",
+                                "partitionOption": "None"
+                            },
+                            "dataset": {
+                                "referenceName": "ds_odssqltable",
+                                "type": "DatasetReference",
+                                "parameters": {
+                                    "databaseSchema": "dbo",
+                                    "tableName": "EntitySync"
+                                }
+                            },
+                            "firstRowOnly": false
+                        }
+                    },
+                    {
+                        "name": "ForEach Entity",
+                        "type": "ForEach",
+                        "dependsOn": [
+                            {
+                                "activity": "Get All Entitites to Sync",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@activity('Get All Entitites to Sync').output.value",
+                                "type": "Expression"
+                            },
+                            "isSequential": false,
+                            "batchCount": 25,
+                            "activities": [
+                                {
+                                    "name": "Schema Sync Helper",
+                                    "type": "ExecutePipeline",
+                                    "dependsOn": [],
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "pipeline": {
+                                            "referenceName": "Schema Sync",
+                                            "type": "PipelineReference"
+                                        },
+                                        "waitOnCompletion": true,
+                                        "parameters": {
+                                            "EntityName": {
+                                                "value": "@item().EntityName",
+                                                "type": "Expression"
+                                            },
+                                            "AttributeURL": {
+                                                "value": "@item().AttributeSchemaURL",
+                                                "type": "Expression"
+                                            },
+                                            "Mapping": {
+                                                "value": "@variables('FieldMapping')",
+                                                "type": "Expression"
+                                            },
+                                            "ExecutionId": {
+                                                "value": "@pipeline().RunId",
+                                                "type": "Expression"
+                                            },
+                                            "PrimaryIdAttribute": {
+                                                "value": "@item().PrimaryIdAttribute",
+                                                "type": "Expression"
+                                            },
+                                            "IsActivity": {
+                                                "value": "@item().IsActivity",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Log Error Schema Sync",
+                                    "type": "SqlServerStoredProcedure",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "Schema Sync Helper",
+                                            "dependencyConditions": [
+                                                "Failed"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "7.00:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "storedProcedureName": "[[ODS].[usp_LogEndExecution]",
+                                        "storedProcedureParameters": {
+                                            "ExecutionId": {
+                                                "value": {
+                                                    "value": "@pipeline().RunId",
+                                                    "type": "Expression"
+                                                },
+                                                "type": "Guid"
+                                            },
+                                            "Message": {
+                                                "value": {
+                                                    "value": "@activity('Schema Sync Helper').Error.message",
+                                                    "type": "Expression"
+                                                },
+                                                "type": "String"
+                                            },
+                                            "RunStatus": {
+                                                "value": "Error",
+                                                "type": "String"
+                                            }
+                                        }
+                                    },
+                                    "linkedServiceName": {
+                                        "referenceName": "Azure_Sql_ODS",
+                                        "type": "LinkedServiceReference"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "Get Entity Name",
+                        "type": "SetVariable",
+                        "dependsOn": [],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "variableName": "entity",
+                            "value": {
+                                "value": "@json(string(pipeline().parameters.EntityName)).key",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ],
+                "concurrency": 1,
+                "policy": {
+                    "elapsedTimeMetric": {},
+                    "cancelAfter": {}
+                },
+                "parameters": {
+                    "EntityName": {
+                        "type": "string",
+                        "defaultValue": {
+                            "key": "account"
+                        }
+                    }
+                },
+                "variables": {
+                    "FieldMapping": {
+                        "type": "String",
+                        "defaultValue": "{   \"type\": \"TabularTranslator\",   \"mappings\": [     {       \"source\": { \"path\": \"['AttributeOf']\" },       \"sink\": {         \"name\": \"AttributeOf\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['AttributeType']\" },       \"sink\": {         \"name\": \"AttributeType\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['EntityLogicalName']\" },       \"sink\": {         \"name\": \"EntityLogicalName\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['IsPrimaryId']\" },       \"sink\": {         \"name\": \"IsPrimaryId\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['IsValidODataAttribute']\" },       \"sink\": {         \"name\": \"IsValidODataAttribute\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['IsPrimaryName']\" },       \"sink\": {         \"name\": \"IsPrimaryName\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['LogicalName']\" },       \"sink\": {         \"name\": \"AttributeLogicalName\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['SchemaName']\" },       \"sink\": {         \"name\": \"AttributeSchemaName\",         \"type\": \"String\"       }     },     {       \"source\": { \"path\": \"['MaxLength']\" },       \"sink\": {         \"name\": \"MaxLength\",         \"type\": \"Int32\"       }     },     {       \"source\": { \"path\": \"['DatabaseLength']\" },       \"sink\": {         \"name\": \"DatabaseLength\",         \"type\": \"Int32\"       }     },     {       \"source\": { \"path\": \"['Precision']\" },       \"sink\": {         \"name\": \"Precision\",         \"type\": \"Int32\"       }     },     {       \"source\": { \"path\": \"['IsRetrievable']\" },       \"sink\": {         \"name\": \"IsRetrievable\",         \"type\": \"Boolean\"       }     },     {       \"source\": { \"path\": \"['AttributeTypeName']['Value']\" },       \"sink\": {         \"name\": \"AttributeTypeName\",         \"type\": \"String\"       }     }   ],   \"collectionReference\": \"$['Attributes']\",   \"mapComplexValuesToString\": false }"
+                    },
+                    "ErrorMessage": {
+                        "type": "String"
+                    },
+                    "entity": {
+                        "type": "String"
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2023-04-27T21:21:40Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_odssqltable')]",
+                "[concat(variables('factoryId'), '/pipelines/Schema Sync')]",
+                "[concat(variables('factoryId'), '/linkedServices/Azure_Sql_ODS')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/04 - Data Sync - OptionSets')]",
             "type": "Microsoft.DataFactory/factories/pipelines",
             "apiVersion": "2018-06-01",
             "properties": {
@@ -1552,7 +1398,7 @@
                         "typeProperties": {
                             "source": {
                                 "type": "AzureSqlSource",
-                                "sqlReaderQuery": "IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[Staging].[OptionSetMetadata]') AND type in (N'U'))\nBEGIN\nCREATE TABLE [Staging].[OptionSetMetadata](\n\t[EntityName] [varchar](128) NULL,\n\t[OptionJson] [varchar](max) NULL,\n\t[OptionType] [nvarchar](100) NULL,\n\t[OptionSetName] [nvarchar](128) NULL,\n\t[GlobalOptionSetName] [nvarchar](128) NULL,\n\t[IsGlobal] [bit] NULL\n) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]\nEND\nELSE \nBEGIN\nTRUNCATE TABLE [Staging].[OptionSetMetadata];\nEND\n\nselect \nEntityName,\nREPLACE(AttributeSchemaURL,'?$select=LogicalName&$expand=Attributes','/Attributes/Microsoft.Dynamics.CRM.BooleanAttributeMetadata?$select=LogicalName&$expand=GlobalOptionSet') as TwoOptionSetUrl,\nREPLACE(AttributeSchemaURL,'?$select=LogicalName&$expand=Attributes','/Attributes/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?$select=LogicalName&$expand=GlobalOptionSet') as PickListUrl,\nREPLACE(AttributeSchemaURL,'?$select=LogicalName&$expand=Attributes','/Attributes/Microsoft.Dynamics.CRM.MultiSelectPicklistAttributeMetadata?$select=LogicalName&$expand=GlobalOptionSet')as MultiSelectUrl\nfrom ods.EntitySync\nwhere SyncReady = 1\n\n",
+                                "sqlReaderQuery": "IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[Staging].[OptionSetMetadata]') AND type in (N'U'))\nBEGIN\nCREATE TABLE [Staging].[OptionSetMetadata](\n\t[EntityName] [varchar](128) NULL,\n\t[OptionJson] [varchar](max) NULL,\n\t[OptionType] [nvarchar](100) NULL,\n\t[OptionSetName] [nvarchar](128) NULL,\n\t[GlobalOptionSetName] [nvarchar](128) NULL,\n\t[IsGlobal] [bit] NULL\n) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]\nEND\nELSE \nBEGIN\nTRUNCATE TABLE [Staging].[OptionSetMetadata];\nEND\n\nIF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GlobalOptionSetMetadata]') AND type in (N'U'))\nBEGIN\nCREATE TABLE [dbo].[GlobalOptionSetMetadata](\n\t[OptionSetName] [nvarchar](128) NOT NULL,\n\t[Option] [int] NOT NULL,\n\t[IsUserLocalizedLabel] [bit] NOT NULL,\n\t[LocalizedLabelLanguageCode] [int] NOT NULL,\n\t[LocalizedLabel] [nvarchar](700) NULL,\n\t[GlobalOptionSetName] [varchar](128) NOT NULL DEFAULT(''),\n\t[EntityName] [varchar](128) NOT NULL,\nPRIMARY KEY CLUSTERED \n(\n\t[GlobalOptionSetName] ASC,\n\t[OptionSetName] ASC,\n\t[Option] ASC,\n\t[IsUserLocalizedLabel] ASC,\n\t[LocalizedLabelLanguageCode] ASC,\n\t[EntityName] ASC\n)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]\n) ON [PRIMARY]\n\nEND\n\nIF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[OptionSetMetadata]') AND type in (N'U'))\nBEGIN\nCREATE TABLE [dbo].[OptionSetMetadata](\n\t[EntityName] [nvarchar](128) NOT NULL,\n\t[OptionSetName] [nvarchar](128) NOT NULL,\n\t[Option] [int] NOT NULL,\n\t[IsUserLocalizedLabel] [bit] NOT NULL,\n\t[LocalizedLabelLanguageCode] [int] NOT NULL,\n\t[LocalizedLabel] [nvarchar](700) NULL,\nPRIMARY KEY CLUSTERED \n(\n\t[EntityName] ASC,\n\t[OptionSetName] ASC,\n\t[Option] ASC,\n\t[IsUserLocalizedLabel] ASC,\n\t[LocalizedLabelLanguageCode] ASC\n)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]\n) ON [PRIMARY]\n\nEND\n\nselect \nEntityName,\nREPLACE(AttributeSchemaURL,'?$select=LogicalName&$expand=Attributes','/Attributes/Microsoft.Dynamics.CRM.BooleanAttributeMetadata?$select=LogicalName&$expand=GlobalOptionSet') as TwoOptionSetUrl,\nREPLACE(AttributeSchemaURL,'?$select=LogicalName&$expand=Attributes','/Attributes/Microsoft.Dynamics.CRM.PicklistAttributeMetadata?$select=LogicalName&$expand=GlobalOptionSet') as PickListUrl,\nREPLACE(AttributeSchemaURL,'?$select=LogicalName&$expand=Attributes','/Attributes/Microsoft.Dynamics.CRM.MultiSelectPicklistAttributeMetadata?$select=LogicalName&$expand=GlobalOptionSet')as MultiSelectUrl\nfrom ods.EntitySync\nwhere SyncReady = 1\n\n",
                                 "queryTimeout": "02:00:00",
                                 "partitionOption": "None"
                             },
@@ -2380,13 +2226,76 @@
                     }
                 },
                 "annotations": [],
-                "lastPublishTime": "2023-01-25T01:54:54Z"
+                "lastPublishTime": "2023-04-27T22:36:10Z"
             },
             "dependsOn": [
                 "[concat(variables('factoryId'), '/datasets/ds_odssqltable')]",
                 "[concat(variables('factoryId'), '/linkedServices/Azure_Sql_ODS')]",
                 "[concat(variables('factoryId'), '/datasets/ds_d365dataset')]"
             ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/Azure_Sql_ODS')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureSqlDatabase",
+                "typeProperties": {
+                    "connectionString": "[parameters('Azure_Sql_ODS_connectionString')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/Blob')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "description": "Blob storage to track failed records during sync",
+                "annotations": [],
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "connectionString": "[parameters('Blob_connectionString')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/D365_Rest_Service')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "RestService",
+                "typeProperties": {
+                    "url": "[parameters('D365_Rest_Service_properties_typeProperties_url')]",
+                    "enableServerCertificateValidation": true,
+                    "authenticationType": "AadServicePrincipal",
+                    "servicePrincipalId": "[parameters('D365_Rest_Service_properties_typeProperties_servicePrincipalId')]",
+                    "servicePrincipalKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('D365_Rest_Service_servicePrincipalKey')]"
+                    },
+                    "tenant": "[parameters('D365_Rest_Service_properties_typeProperties_tenant')]",
+                    "aadResourceId": "[parameters('D365_Rest_Service_properties_typeProperties_aadResourceId')]",
+                    "azureCloudType": "AzurePublic"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/kv_linkedservice')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureKeyVault",
+                "typeProperties": {
+                    "baseUrl": "[parameters('kv_linkedservice_properties_typeProperties_baseUrl')]"
+                }
+            },
+            "dependsOn": []
         }
     ]
 }
