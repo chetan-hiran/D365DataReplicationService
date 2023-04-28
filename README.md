@@ -32,8 +32,6 @@ ADF Based Data Export Services, which can be the replacement for the retired D36
 
 ## Overview
 
-
-
 ODS is a framework developed to replicate data from Microsoft Dataverse
 to an Azure SQL Database in a user owned Azure Subscription. This
 framework will replicate data similar to [Data Export
@@ -139,6 +137,10 @@ b. Data Sync Pipeline
   Monitor](https://learn.microsoft.com/en-us/azure/data-factory/monitor-using-azure-monitor)
 
 ## Deployment Steps
+
+### Run the SQL Scripts
+
+Run the SQL Script located [here](https://github.com/chetan-hiran/D365DataReplicationService/blob/main/Code/SqlScripts/01%20-SQL%20Scripts.sql)
 
 ### Create Data Factory
 
