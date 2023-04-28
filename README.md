@@ -1,6 +1,7 @@
-# ODS -- Operational Data Store.
+# ODS - Operational Data Store.
 
-Replicate Dataverse data to Azure SQL Database. ADF Based D365 Data Export Services, which can be the replacement for the retired D365 DES Service.
+Replicate Dataverse data to Azure SQL Database. 
+ADF Based Data Export Services, which can be the replacement for the retired D365 DES Service.
 
 ## Contributors
 
@@ -24,8 +25,7 @@ Replicate Dataverse data to Azure SQL Database. ADF Based D365 Data Export Servi
   - [Import the Pipelines through ARM Template](#import-the-pipelines-through-arm-template)
   - [Post deployment validation](#post-deployment-validation)
 - [Pipeline Details and Execution Sequence:](#pipeline-details-and-execution-sequence)
-  - [01 - Master Data Load](#01---master-data-load)
-    - [How to Execute the Pipeline](#how-to-execute-the-pipeline)
+  - [01 - Master Data Load](#01---master-data-load) 
   - [02 - Entity Schema Sync Master](#02---entity-schema-sync-master)
   - [03 - Data Sync Master:](#03---data-sync-master)
 - [Known Issues](#known-issues)
@@ -38,20 +38,16 @@ ODS is a framework developed to replicate data from Microsoft Dataverse
 to an Azure SQL Database in a user owned Azure Subscription. This
 framework will replicate data similar to [Data Export
 Services](https://learn.microsoft.com/en-us/power-platform/admin/replicate-data-microsoft-azure-sql-database).
-Since [Data Export
+[Data Export
 Services](https://learn.microsoft.com/en-us/power-platform/admin/replicate-data-microsoft-azure-sql-database)
-got retired and got replaced with [Azure Synapse Link for
+is retired by the Product Team and is replaced with [Azure Synapse Link for
 Dataverse](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/export-to-data-lake).
 Currently there is no support to export the Dataverse data directly to
-Azure SQL Server close to real time, as Azure Synapse link has the
-latency of \~15 mins or more. This ODS framework will solve this problem
-in a cost-effective way and eliminates the dependency on Synapse.
+Azure SQL Server close to real time. Azure Synapse link has the
+latency of \~15 mins or more. The ODS framework is fast, cost effective and eliminates the dependency on Azure Synapse.
 
-ODS supports Azure SQL Database, but the framework can be easily
-extended to support SQL Server on Azure virtual machines or on-Premises
-SQL server. The ODS intelligently synchronizes the full Dataverse data
-initially and thereafter synchronizes on a continuous basis as changes
-occur (delta changes) in the system.
+ODS supports Azure SQL Database, but the framework can be easily extended to support SQL Server on Azure virtual machines or on-Premises
+SQL server. The ODS intelligently synchronizes the full inital data load and thereafter synchronizes only the delta records that are modified in the system.
 
 ### How does ODS sync the Data from Dataverse
 
@@ -66,7 +62,7 @@ to learn about the change tracking and delta token.
 
 1.  Azure SQL database:
 
-A Azure SQL database and an account with the below permissions.
+Azure SQL database and an user/account with the below permissions.
 
 | Permission Type | Permission Name  |
 | --------------- | ---------------- |
@@ -105,9 +101,7 @@ factory. The ADF pipeline execution logs can be found in this storage.
 
 5.  Microsoft Dataverse
 
-    In D365 provision an Application user with System Administrator
-    security role and we will use this Application user context to call
-    the OData API in Pipelines.
+In D365 provision an Application user with System Administrator security role. The framework connects to the environment with this user to fetch the data. 
 
 ## Architecture
 
@@ -191,16 +185,12 @@ This will deploy the pipeline to the Data factory.
 ## Pipeline Details and Execution Sequence:
 
 ### 01 - Master Data Load
+<p>This pipeline is used to onboard all the D365 entities in SQL database. This pipeline will create a new record for each D365 entity in
+\[ODS\].\[EntitySync\] table.</p>
 
-This is used to onboard all the D365 entities in SQL database. This
-pipeline will create a new record for each D365 entity in
-\[ODS\].\[EntitySync\] table.
+The table \[ODS\].\[EntitySync\] has three important columns.
 
-The table \[ODS\].\[EntitySync\] has three important columns below
-
-1. "SyncReady": The Data load will happen only for the Entities which
-   has SyncReady = 1. This flag is used in the pipeline "03 - Data Sync
-   Master"
+1. **"SyncReady:"** <p>The data is synced only for the Entities that are flagged for SyncReady.  </p>
 
 How to set the SyncReady to 1.
 
@@ -210,14 +200,10 @@ SET SyncReady = 1
 WHERE EntityName = 'account'
 ```
 
-2.  "SyncFrequency": This column is used in the pipeline "03 - Data Sync
-    Master" for filtering purpose.
+2.  **"SyncFrequency":** <p>This column is used for grouping entities in different buckets for sync.<p>
 
-3.  DeltaToken: When this value is NULL, it means the entity is loaded
-    for the first time and if it has value then the Data load will be
-    performed based on the Delta Token. So any time if you wanted to
-    perform full data load for the entity, then set the value as NULL
-    for entity in the table.
+3.  **DeltaToken:** <p>When DeltaToken is null, the data sync pipeline will fetch all the records from the D365 instance for sync. 
+When DetaToken has value only the detla records will be fetched for sync. The delta token is automatically updated after a successful execution of the pipeline.  </p> <p>If a full data load for the entity is needed, then set the value as NULL for entity in the table.</p> 
 
 How to set the DeltaToken to NULL.
 
@@ -227,14 +213,11 @@ SET DeltaToken = NULL
 WHERE EntityName = 'account'
 ```
 
-**[Note:]**
+**Note:**
 
-- Execute this pipeline manually once you complete the setup of the
-  pipelines.
+- Execute this pipeline manually once you complete the setup of the pipelines. 
+- Execute this pipeline any time when there is new entity in D365 that needs to be enabled for data sync
 
-- After first time execution, Any time when you have a brand new
-  entity in D365 and if you wanted to perform Data Sync for the entity
-  then execute this pipeline.
 
 **PARAMETERS**: This pipeline has no parameters.
 
@@ -246,8 +229,7 @@ WHERE EntityName = 'account'
 2.  The pipeline will load data on ODS.EntitySync table.
 
 3.  Update SyncReady Flag in ODS.EntitySync table using the below sample
-    script. Update this flag for only the entities for which you wanted
-    to sync the data from Dataverse.
+    script. Update this flag for only the entities that required for data sync.
 
 ```sql
 UPDATE ODS.EntitySync
